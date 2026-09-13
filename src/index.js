@@ -34,6 +34,7 @@ let selectedPiece;
 let selected = false;
 let currentTurn = "w";
 let selectedColor;
+let enemyColor;
 let selectTurn;
 
 let leftWhiteRookMoved = false;
@@ -93,6 +94,7 @@ for (let row = 0; row < 8; row++) {
                 from = `row ${row} col ${col}`;
                 selected = true;
                 selectedColor = initialPiece[row][col].slice(0, 1);
+                enemyColor = selectedColor === 'w' ? 'b' : 'w';
                 console.log("selected")
                 selectedPiece = initialPiece[row][col];
                 const pieceImage = square.querySelector('img');
@@ -133,25 +135,29 @@ for (let row = 0; row < 8; row++) {
             } else {
                 currentTurn = "w"
             }
-             if (selectedRow === 0 && selectedCol === 0) {
-                leftBlackRookMoved = true;
-                
+
+             if (selectedPiece === 'br' && selectedCol === 0) {
+                if (selectedCol === 0) leftBlackRookMoved = true;  
+                if (selectedCol === 7) rightBlackRookMoved = true;  
             }
-            if (selectedRow === 0 && selectedCol === 7) {
-                rightBlackRookMoved = true;
-            }
-            if (selectedRow === 0 && selectedCol === 4) {
+            if (selectedPiece === 'bk') {
                blackKingMoved = true
             }
 
-            if (selectedRow === 7 && selectedCol === 0) {
-                leftWhiteRookMoved = true;
+            if (selectedPiece === 'wr' && selectedCol === 7) {
+                if (selectedCol === 0) leftWhiteRookMoved = true;  
+                if (selectedCol === 7) rightWhiteRookMoved = true;  
             }
-            if (selectedRow === 7 && selectedCol === 7) {
-                rightWhiteRookMoved = true;
-            }
-            if (selectedRow === 7 && selectedCol === 4) {
+            if (selectedPiece === 'wk') {
                 whiteKingMoved = true;
+            }
+            if (!hasLegalMove(enemyColor)) {
+                const fullSpell = selectedColor === 'w' ? 'White' : 'Black';
+                if (isKingInChecked(enemyColor)) {
+                 alert(`Checkmate! ${fullSpell} side won!`)
+                } else {
+                 alert ('Stalemate!')
+                }
             }
             return 
               }
@@ -195,28 +201,28 @@ for (let row = 0; row < 8; row++) {
                 console.log("Promotion executed");
             }
 
-
-            if (selectedRow === 0 && selectedCol === 0) {
-                leftBlackRookMoved = true;
-                
+            if (selectedPiece === 'br' && selectedCol === 0) {
+                if (selectedCol === 0) leftBlackRookMoved = true;  
+                if (selectedCol === 7) rightBlackRookMoved = true;  
             }
-            if (selectedRow === 0 && selectedCol === 7) {
-                rightBlackRookMoved = true;
-            }
-            if (selectedRow === 0 && selectedCol === 4) {
+            if (selectedPiece === 'bk') {
                blackKingMoved = true
             }
 
-            if (selectedRow === 7 && selectedCol === 0) {
-                leftWhiteRookMoved = true;
+            if (selectedPiece === 'wr' && selectedCol === 7) {
+                if (selectedCol === 0) leftWhiteRookMoved = true;  
+                if (selectedCol === 7) rightWhiteRookMoved = true;  
             }
-            if (selectedRow === 7 && selectedCol === 7) {
-                rightWhiteRookMoved = true;
-            }
-            if (selectedRow === 7 && selectedCol === 4) {
+            if (selectedPiece === 'wk') {
                 whiteKingMoved = true;
             }
-
+             if (!hasLegalMove(enemyColor)) {
+                const fullSpell = selectedColor === 'w' ? 'White' : 'Black';
+                if (isKingInChecked(enemyColor)) {
+                 alert (`Checkmate! ${fullSpell} side won!`)
+                } else {
+                 alert ('Stalemate!')
+                }
             return
             } else if (selected) {
              selected = false;
@@ -228,10 +234,11 @@ for (let row = 0; row < 8; row++) {
             console.log('safe:', safe);
              return
             }
-
-        })
+        }
+    })
     }
 }
+
 
 function isValidMove(piece, fromRow, fromCol, toRow, toCol, targetPiece) {
     let targetColor;
@@ -562,4 +569,13 @@ function castlingBoolean(piece, fromRow, fromCol, toRow, toCol) {
     }
 
 
+}
+
+function isCheckmate(color) {
+  const enemyColor = color === 'w' ? 'b' : 'w';
+  if (isKingInChecked(enemyColor) && !hasLegalMove(enemyColor)) {
+alert('Checkmate!')
+return true
+  }
+  return false;
 }
