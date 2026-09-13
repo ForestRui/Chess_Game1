@@ -45,6 +45,23 @@ let leftBlackRookMoved = false;
 let rightBlackRookMoved = false;
 let blackKingMoved = false;
 
+const trialBtn = document.querySelector('#trial-button');
+const menu = document.querySelector('#menu');
+const main = document.querySelector('#main');
+const menuBtn = document.querySelector('#go-menu');
+const title = document.querySelector('h1');
+
+trialBtn.addEventListener('click', () => {
+  main.classList.toggle('hidden');
+  menu.classList.toggle('hidden');
+  title.classList.toggle('hidden');
+})
+
+menuBtn.addEventListener('click', () => {
+  main.classList.toggle('hidden');
+  menu.classList.toggle('hidden');
+  title.classList.toggle('hidden');
+})
 
 
 for (let row = 0; row < 8; row++) {
@@ -88,7 +105,7 @@ for (let row = 0; row < 8; row++) {
                 return
             }
 
-            if (selectTurn === currentTurn && !selected) {
+            if (selectTurn === currentTurn && !selected) { //Select//
                 selectedRow = row;
                 selectedCol = col;
                 from = `row ${row} col ${col}`;
@@ -98,15 +115,38 @@ for (let row = 0; row < 8; row++) {
                 console.log("selected")
                 selectedPiece = initialPiece[row][col];
                 const pieceImage = square.querySelector('img');
-                pieceImage.classList.toggle("selected");
+
+                pieceImage.classList.toggle("selected");  //CSS//
+                square.classList.add('selected-square');
+                for (let checkRow = 0; checkRow < 8; checkRow++) { 
+                    for (let checkCol = 0; checkCol < 8; checkCol++) {
+                        const valid = isValidMove(selectedPiece, row, col, checkRow, checkCol, initialPiece[checkRow][checkCol]);
+                        const safe = noExposure(selectedPiece, row, col, checkRow, checkCol, initialPiece[checkRow][checkCol]);
+                            if (safe) {
+                         const possibleSquare = document.querySelector(`[data-row='${checkRow}'][data-col='${checkCol}']`);
+                         possibleSquare.classList.add('valid-move');
+                        } 
+                        else if (valid && !safe){
+                         const possibleSquare = document.querySelector(`[data-row='${checkRow}'][data-col='${checkCol}']`);
+                         possibleSquare.classList.add('invalid-move');
+                        }
+                    }
+                }
                 return
-            } else if (selectedRow === row && selectedCol === col && selected) {
+            } 
+            else if (selectedRow === row && selectedCol === col && selected) { //Cancel//
                 selected = false;
+                
+                const allSquare = document.querySelectorAll('.square');
+                allSquare.forEach(square => {
+                    square.classList.remove('selected-square', 'valid-move', 'invalid-move');
+                });
                 console.log("selection cancelled");
                 const pieceImage = square.querySelector('img');
                 pieceImage.classList.toggle("selected");
                 return
             }
+
               const valid = isValidMove(selectedPiece, selectedRow, selectedCol, row, col, initialPiece[row][col]);
               const safe = noExposure(selectedPiece, selectedRow, selectedCol, row, col, initialPiece[row][col]);
               const castle = castlingBoolean(selectedPiece, selectedRow, selectedCol, row, col);
@@ -151,7 +191,8 @@ for (let row = 0; row < 8; row++) {
             if (selectedPiece === 'wk') {
                 whiteKingMoved = true;
             }
-            if (!hasLegalMove(enemyColor)) {
+            setTimeout(() => {
+                if (!hasLegalMove(enemyColor)) {
                 const fullSpell = selectedColor === 'w' ? 'White' : 'Black';
                 if (isKingInChecked(enemyColor)) {
                  alert(`Checkmate! ${fullSpell} side won!`)
@@ -159,6 +200,14 @@ for (let row = 0; row < 8; row++) {
                  alert ('Stalemate!')
                 }
             }
+              }, 300 );
+
+              const allSquare = document.querySelectorAll('.square'); //CSS//
+                allSquare.forEach(square => {
+                    square.classList.remove('selected-square', 'valid-move', 'invalid-move');
+                });
+                isKingInChecked(enemyColor);
+
             return 
               }
 
@@ -171,6 +220,7 @@ for (let row = 0; row < 8; row++) {
              const oldSquare = document.querySelector(`[data-row="${selectedRow}"][data-col="${selectedCol}"]`);
              const movePiece = oldSquare.querySelector('img');
              movePiece.classList.toggle('selected');
+             oldSquare.classList.remove('selected-square');
              const capturePiece = square.querySelector('img');
              if (capturePiece) {
                 capturePiece.remove(); //man!//
@@ -216,12 +266,27 @@ for (let row = 0; row < 8; row++) {
             if (selectedPiece === 'wk') {
                 whiteKingMoved = true;
             }
-             if (!hasLegalMove(enemyColor)) {
+            setTimeout(() => {
+                if (!hasLegalMove(enemyColor)) {
                 const fullSpell = selectedColor === 'w' ? 'White' : 'Black';
                 if (isKingInChecked(enemyColor)) {
-                 alert (`Checkmate! ${fullSpell} side won!`)
+                 alert(`Checkmate! ${fullSpell} side won!`)
                 } else {
                  alert ('Stalemate!')
+                }
+            }
+              }, 300 );
+
+              const allSquare = document.querySelectorAll('.square'); //CSS//
+                allSquare.forEach(square => {
+                    square.classList.remove('selected-square', 'valid-move', 'invalid-move', 'check-square');
+                });
+                if (isKingInChecked(enemyColor)) {
+                    const king = enemyColor + 'k';
+                    const kingRow = initialPiece.findIndex(row => row.includes(king));
+                    const kingCol = initialPiece[kingRow].indexOf(king);
+                    const kingSquare = document.querySelector(`[data-row='${kingRow}'][data-col='${kingCol}']`);
+                    kingSquare.classList.add('check-square');
                 }
             return
             } else if (selected) {
@@ -232,9 +297,14 @@ for (let row = 0; row < 8; row++) {
              console.log('piece:', selectedPiece);
             console.log('valid:', valid);
             console.log('safe:', safe);
+
+            const allSquare = document.querySelectorAll('.square');
+                allSquare.forEach(square => {
+                    square.classList.remove('selected-square', 'valid-move', 'invalid-move');
+                });
              return
             }
-        }
+        
     })
     }
 }
@@ -384,7 +454,7 @@ function isValidMove(piece, fromRow, fromCol, toRow, toCol, targetPiece) {
         for (let i = 1; i < colChange; i++) {
             const checkPiece = initialPiece[fromRow][fromCol + i * colDirection];
             if (checkPiece) {
-                return false
+                return false;
             }
         }
         if (!sameColor) {
@@ -437,45 +507,9 @@ function isKingInChecked(color) {
   
 }
 
-
-function hasLegalMove(color) {
-    if (isKingInChecked(color)) {
-    for (let row = 0; row < 8; row++) {
-      for (let col = 0; col < 8; col++) {
-        if (initialPiece[row][col]) {
-            if (initialPiece[row][col].slice(0, 1) === color) {
-                const ownPiece = initialPiece[row][col];
-                 for (let squareRow = 0; squareRow < 8; squareRow++) {
-                    for (let squareCol = 0; squareCol < 8; squareCol++) {
-                    const square = initialPiece[squareRow][squareCol];
-                    if (isValidMove(ownPiece, row, col, squareRow, squareCol, square)) {
-                        initialPiece[row][col] = null;
-                        initialPiece[squareRow][squareCol] = ownPiece;
-                        if (!isKingInChecked(color)) {
-                            console.log("legal move")
-                            initialPiece[row][col] = ownPiece;
-                            initialPiece[squareRow][squareCol] = square;
-                            return true;
-                        } else {
-                            console.log('illegal move');
-                            initialPiece[row][col] = ownPiece;
-                            initialPiece[squareRow][squareCol] = square;
-                        }
-                    }
-                 }
-                }
-            }
-        }
-      }
-    }
-    }
-
-    return false
-}
-
 function noExposure(piece, fromRow, fromCol, toRow, toCol, targetPiece) {
     let color;
-    if (initialPiece[fromRow][fromCol]) {
+    if (initialPiece[fromRow][fromCol] && isValidMove(piece, fromRow, fromCol, toRow, toCol, targetPiece)) {
          color = initialPiece[fromRow][fromCol].slice(0, 1);
     } else {
         return false
@@ -491,6 +525,32 @@ function noExposure(piece, fromRow, fromCol, toRow, toCol, targetPiece) {
     return !isKingExposed
     
 }
+
+function hasLegalMove(color) {
+    for (let row = 0; row < 8; row++) {
+      for (let col = 0; col < 8; col++) {
+        if (initialPiece[row][col]) {
+            if (initialPiece[row][col].slice(0, 1) === color) {
+                const ownPiece = initialPiece[row][col];
+                 for (let squareRow = 0; squareRow < 8; squareRow++) {
+                    for (let squareCol = 0; squareCol < 8; squareCol++) {
+                    const square = initialPiece[squareRow][squareCol];
+                    const safe = noExposure(ownPiece, row, col, squareRow, squareCol, square)
+                    if (safe) {
+                            console.log("legal move")
+                            return true;
+                        }
+                    
+                 }
+                }
+            }
+        }
+      }
+    }
+
+    return false
+}
+
 
 
 function castlingBoolean(piece, fromRow, fromCol, toRow, toCol) {
@@ -579,3 +639,4 @@ return true
   }
   return false;
 }
+
