@@ -22,6 +22,10 @@ button {
     width: 12vh;
 }
 
+p {
+    color: var(--text);
+}
+
 /*First Layer*/
 #menu {
     height: 25vh;
@@ -46,6 +50,11 @@ h1 {
 
 /*Second Layer*/
 #chessboard {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    
     display: grid;
     height: 560px;
     width: 560px;
@@ -87,9 +96,17 @@ main {
     min-height: 100vh;
 }
 
-#go-menu {
-  display: block;  
+.ingame-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    margin: auto;
+
+    position: absolute;
+    left: calc(20%);
 }
+
+
 
 .square {
     display: flex;
@@ -118,7 +135,7 @@ main {
 }
 
 .square.invalid-move::after {
-    content: "x";
+    content: "✗";
     position: absolute;
     font-size: 2rem;
     color: var(--danger);
@@ -143,3 +160,25 @@ main {
     width: 70px;
     height: 70px;
 }
+
+#piece-value {
+    height: 5vh;
+    width: 15vh;
+    border: 1px solid var(--accent);
+    border-radius: 14px;
+      display: flex;
+  align-items: center;      /* vertical */
+  justify-content: center; 
+  background-color: var(--surface);
+
+  position: absolute;
+  right: 10%;
+}
+
+#score-text {
+    color: var(--text);
+    font-size: 18px;
+    font-weight: 900;
+    text-align: center;
+}
+

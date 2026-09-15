@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Forest's Chess</title>
     <link rel="stylesheet" href="./src/index.css">
 </head>
 <body>
@@ -14,8 +14,18 @@
      <button id="pvc-button" class="menu-button">PVC</button>
     </div>
     </div>
+    
     <main class="hidden" id="main">
+        <div class="ingame-buttons">
         <button id="go-menu">Menu</button>
+        <button id="reset">Reset</button>
+        </div>
+   <div id="piece-value">
+    <div id="score-title">
+     <p>Score:</p>
+     </div>
+    <p id="score-text">mamba</p>
+   </div>
      <div id="chessboard"></div>
     </main>
     <script type="module" src="./src/index.js"></script>

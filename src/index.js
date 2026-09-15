@@ -1,6 +1,6 @@
 const chessboard = document.getElementById('chessboard');
 
-const initialPiece = [
+let initialPiece = [
     ['br', 'bn', 'bb', 'bq', 'bk', 'bb', 'bn', 'br'],
     ['bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp'],
     [null, null, null, null, null, null, null, null],
@@ -10,6 +10,8 @@ const initialPiece = [
     ['wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp'],
     ['wr', 'wn', 'wb', 'wq', 'wk', 'wb', 'wn', 'wr'],
 ]
+
+const startPiece = initialPiece.map(row => [...row]);
 
 const pieceMap = {
     br: 'black-rook.png',
@@ -36,6 +38,7 @@ let currentTurn = "w";
 let selectedColor;
 let enemyColor;
 let selectTurn;
+let gameOver = false;
 
 let leftWhiteRookMoved = false;
 let rightWhiteRookMoved = false;
@@ -45,25 +48,53 @@ let leftBlackRookMoved = false;
 let rightBlackRookMoved = false;
 let blackKingMoved = false;
 
+let pawn = 1;
+let queen = 9;
+let knight = 3;
+let rook = 5;
+let bishop = 3;
+let playerColor = 'w';
+let computerColor = 'b';
+let isComputer = false;
+
 const trialBtn = document.querySelector('#trial-button');
+const pvcBtn = document.getElementById('pvc-button');
 const menu = document.querySelector('#menu');
 const main = document.querySelector('#main');
 const menuBtn = document.querySelector('#go-menu');
 const title = document.querySelector('h1');
+const gameBtns = document.querySelector('.ingame-buttons');
+const resetBtn = document.querySelector('#reset');
+const pieceValue = document.querySelector('#piece-value');
 
 trialBtn.addEventListener('click', () => {
   main.classList.toggle('hidden');
   menu.classList.toggle('hidden');
   title.classList.toggle('hidden');
+  reset();
+  isComputer = false;
+})
+
+pvcBtn.addEventListener('click', () => {
+  main.classList.toggle('hidden');
+  menu.classList.toggle('hidden');
+  title.classList.toggle('hidden');
+  isComputer = true;
+  reset();
 })
 
 menuBtn.addEventListener('click', () => {
   main.classList.toggle('hidden');
   menu.classList.toggle('hidden');
   title.classList.toggle('hidden');
+  reset();
 })
 
+resetBtn.addEventListener('click', reset);
 
+showScore(playerColor);
+
+function startGame() {
 for (let row = 0; row < 8; row++) {
     for (let col = 0; col < 8; col++) {
         const square = document.createElement('div');
@@ -82,18 +113,17 @@ for (let row = 0; row < 8; row++) {
             img.src = `src/pieces/${pieceMap[piece]}`;
             img.alt = piece;
             img.classList.add('piece');
-
-          if (row <= 1) {
-            img.setAttribute("piece-color", "black");
-          } else if (row >= 6) {
-            img.setAttribute("piece-color", "white");
-          } 
             square.appendChild(img);
+
+           
         }
         chessboard.appendChild(square);
 
 
         square.addEventListener("click", () => {
+            if (gameOver) {
+                return
+            }
             if (initialPiece[row][col] && !selected) {
                 selectTurn = initialPiece[row][col].slice(0, 1);
             }
@@ -110,7 +140,7 @@ for (let row = 0; row < 8; row++) {
                 selectedCol = col;
                 from = `row ${row} col ${col}`;
                 selected = true;
-                selectedColor = initialPiece[row][col].slice(0, 1);
+                if(initialPiece[row][col]) selectedColor = initialPiece[row][col].slice(0, 1);
                 enemyColor = selectedColor === 'w' ? 'b' : 'w';
                 console.log("selected")
                 selectedPiece = initialPiece[row][col];
@@ -134,7 +164,7 @@ for (let row = 0; row < 8; row++) {
                 }
                 return
             } 
-            else if (selectedRow === row && selectedCol === col && selected) { //Cancel//
+            else if (selectedRow === row && selectedCol === col && selected && !gameOver) { //Cancel//
                 selected = false;
                 
                 const allSquare = document.querySelectorAll('.square');
@@ -156,6 +186,7 @@ for (let row = 0; row < 8; row++) {
                 let rookCol = selectedCol > col ? 0 : 7;
                 let kingRow = selectTurn === 'w' ? 7 : 0;
                     initialPiece[row][col + direction] = initialPiece[kingRow][rookCol];
+                    initialPiece[row][col] = initialPiece[selectedRow][selectedCol];
                     const oldRookSquare = document.querySelector(`[data-row="${kingRow}"][data-col="${rookCol}"]`);
                     const rookPiece = oldRookSquare.querySelector('img');
                     const newRookSquare = document.querySelector(`[data-row="${row}"][data-col="${col + direction}"]`)
@@ -175,8 +206,9 @@ for (let row = 0; row < 8; row++) {
             } else {
                 currentTurn = "w"
             }
+            
 
-             if (selectedPiece === 'br' && selectedCol === 0) {
+             if (selectedPiece === 'br' && selectedRow === 0) {
                 if (selectedCol === 0) leftBlackRookMoved = true;  
                 if (selectedCol === 7) rightBlackRookMoved = true;  
             }
@@ -184,29 +216,53 @@ for (let row = 0; row < 8; row++) {
                blackKingMoved = true
             }
 
-            if (selectedPiece === 'wr' && selectedCol === 7) {
+            if (selectedPiece === 'wr' && selectedRow === 7) {
                 if (selectedCol === 0) leftWhiteRookMoved = true;  
                 if (selectedCol === 7) rightWhiteRookMoved = true;  
             }
             if (selectedPiece === 'wk') {
                 whiteKingMoved = true;
             }
+
+            if (isComputer && currentTurn === computerColor) {
+                computer((computerColor));
+                showScore(playerColor);
+                currentTurn = 'w';
+            }
+
             setTimeout(() => {
                 if (!hasLegalMove(enemyColor)) {
                 const fullSpell = selectedColor === 'w' ? 'White' : 'Black';
                 if (isKingInChecked(enemyColor)) {
+                    gameOver = true;
                  alert(`Checkmate! ${fullSpell} side won!`)
                 } else {
+                    gameOver = true;
                  alert ('Stalemate!')
                 }
             }
               }, 300 );
+              showScore(playerColor);
 
               const allSquare = document.querySelectorAll('.square'); //CSS//
                 allSquare.forEach(square => {
                     square.classList.remove('selected-square', 'valid-move', 'invalid-move');
                 });
-                isKingInChecked(enemyColor);
+                if (isKingInChecked(computerColor)) {
+                    const king = enemyColor + 'k';
+                    const kingRow = initialPiece.findIndex(row => row.includes(king));
+                    const kingCol = initialPiece[kingRow].indexOf(king);
+                    const kingSquare = document.querySelector(`[data-row='${kingRow}'][data-col='${kingCol}']`);
+                    kingSquare.classList.add('check-square');
+                }
+                if (isKingInChecked(playerColor)) {
+                    const king = playerColor + 'k';
+                    const kingRow = initialPiece.findIndex(row => row.includes(king));
+                    const kingCol = initialPiece[kingRow].indexOf(king);
+                    const kingSquare = document.querySelector(`[data-row='${kingRow}'][data-col='${kingCol}']`);
+                    kingSquare.classList.add('check-square');
+                }
+
 
             return 
               }
@@ -251,7 +307,7 @@ for (let row = 0; row < 8; row++) {
                 console.log("Promotion executed");
             }
 
-            if (selectedPiece === 'br' && selectedCol === 0) {
+            if (selectedPiece === 'br' && selectedRow === 0) {
                 if (selectedCol === 0) leftBlackRookMoved = true;  
                 if (selectedCol === 7) rightBlackRookMoved = true;  
             }
@@ -259,7 +315,7 @@ for (let row = 0; row < 8; row++) {
                blackKingMoved = true
             }
 
-            if (selectedPiece === 'wr' && selectedCol === 7) {
+            if (selectedPiece === 'wr' && selectedRow === 7) {
                 if (selectedCol === 0) leftWhiteRookMoved = true;  
                 if (selectedCol === 7) rightWhiteRookMoved = true;  
             }
@@ -267,22 +323,41 @@ for (let row = 0; row < 8; row++) {
                 whiteKingMoved = true;
             }
             setTimeout(() => {
+                
                 if (!hasLegalMove(enemyColor)) {
                 const fullSpell = selectedColor === 'w' ? 'White' : 'Black';
                 if (isKingInChecked(enemyColor)) {
+                    gameOver = true;
                  alert(`Checkmate! ${fullSpell} side won!`)
                 } else {
+                    gameOver = true;
                  alert ('Stalemate!')
                 }
             }
-              }, 300 );
+              }, 100 );
+              
+               if (isComputer && currentTurn === computerColor) {
+                computer((computerColor));
+                showScore(playerColor);
+                currentTurn = 'w';
+            }
+
+            showScore(playerColor);
+
 
               const allSquare = document.querySelectorAll('.square'); //CSS//
                 allSquare.forEach(square => {
                     square.classList.remove('selected-square', 'valid-move', 'invalid-move', 'check-square');
                 });
-                if (isKingInChecked(enemyColor)) {
+                if (isKingInChecked(computerColor)) {
                     const king = enemyColor + 'k';
+                    const kingRow = initialPiece.findIndex(row => row.includes(king));
+                    const kingCol = initialPiece[kingRow].indexOf(king);
+                    const kingSquare = document.querySelector(`[data-row='${kingRow}'][data-col='${kingCol}']`);
+                    kingSquare.classList.add('check-square');
+                }
+                if (isKingInChecked(playerColor)) {
+                    const king = playerColor + 'k';
                     const kingRow = initialPiece.findIndex(row => row.includes(king));
                     const kingCol = initialPiece[kingRow].indexOf(king);
                     const kingSquare = document.querySelector(`[data-row='${kingRow}'][data-col='${kingCol}']`);
@@ -307,6 +382,7 @@ for (let row = 0; row < 8; row++) {
         
     })
     }
+}
 }
 
 
@@ -558,6 +634,7 @@ function castlingBoolean(piece, fromRow, fromCol, toRow, toCol) {
     let rookMoved;
     let kingMoved;
     let color;
+    
     if (initialPiece[fromRow][fromCol]) {
         color = initialPiece[fromRow][fromCol].slice(0, 1);
     }
@@ -573,61 +650,56 @@ function castlingBoolean(piece, fromRow, fromCol, toRow, toCol) {
     const direction = fromCol > toCol ? -1 : 1;
     let i = 1;
     let k = 1;
-    if (direction < 0) {
+    let threeOrFour = direction < 0 ? 4 : 3;
     while (i < 3) {
-        if (!noExposure(piece, fromRow, fromCol, toRow, fromCol + i * direction, initialPiece[toRow][toCol])) {
-             return false;
-            } //path not safe//
+        const checkCol = fromCol + i * direction;
+        const store = initialPiece[fromRow][checkCol];
+        initialPiece[fromRow][fromCol] = null;
+        initialPiece[fromRow][checkCol] = color + 'k';
+
+        const kingCheck = isKingInChecked(color);
+
+       initialPiece[fromRow][checkCol] = store;
+       initialPiece[fromRow][fromCol] = color + 'k'
+        if (kingCheck) return false //path not safe//
         i++
     }
-    while (k < 4) {
+    while (k < threeOrFour) {
         if (initialPiece[fromRow][fromCol + k * direction]) { 
             return false;
         }//path not clear//
         k++
     }
-    } else {
-      while (i < 3) {
-        if (!noExposure(piece, fromRow, fromCol, toRow, fromCol + i * direction, initialPiece[toRow][toCol])) {
-             return false;
-            } //path not safe//
-        i++
-    }
-    while (k < 3) {
-        if (initialPiece[fromRow][fromCol + k * direction]) { 
-            return false;
-        }//path not clear//
-        k++
-    }
-    }
+    
      if (piece === 'wk') {
       kingMoved = whiteKingMoved;
-      if (direction > 0) {
+      if (direction > 0 && initialPiece[fromRow][7] === 'wr') {
         rookMoved = rightWhiteRookMoved;
         rookCol = 7;
-      } else {
+      } else if (direction < 0 && initialPiece[fromRow][0] === 'wr'){
         rookMoved = leftWhiteRookMoved;
         rookCol = 0;
       }
     } 
     if (piece === 'bk') {
         kingMoved = blackKingMoved;
-        if (direction > 0) {
+        if (direction > 0 && initialPiece[fromRow][7] === 'br') {
          rookMoved = rightBlackRookMoved;
          rookCol = 7
-        } else {
+        } else if (direction < 0 && initialPiece[fromRow][0] === 'br'){
             rookMoved = leftBlackRookMoved;
             rookCol = 0;
         }
     }
 
-    if (!rookMoved && !kingMoved) {
-        if (!isKingInChecked(color)) {
-            return true
-
-        }
+    if (rookCol === undefined) {
+        return false
     }
 
+    if (!rookMoved && !kingMoved && !isKingInChecked(color)) {
+            return true
+    }
+return false
 
 }
 
@@ -638,5 +710,136 @@ alert('Checkmate!')
 return true
   }
   return false;
+}
+
+function reset() {
+  initialPiece = startPiece.map(row => [...row]);
+   leftWhiteRookMoved = false;
+rightWhiteRookMoved = false;
+ whiteKingMoved = false;
+
+leftBlackRookMoved = false;
+rightBlackRookMoved = false;
+ blackKingMoved = false;
+currentTurn = 'w';
+selected = false;
+gameOver = false;
+chessboard.innerHTML = '';
+startGame();
+showScore(playerColor);
+}
+
+
+
+function showScore(color) {
+   let totalScore = 0;
+   const scoreText = document.getElementById('score-text');
+   
+for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+        if (initialPiece[row][col]) {
+        const piece = initialPiece[row][col];
+        const pieceColor = piece.slice(0, 1);
+        const direction = color === pieceColor ? 1 : -1;
+        const pieceType = piece.slice(1);
+        if (pieceType === 'p') {
+            totalScore += direction * pawn;
+        }
+        if (pieceType === 'q') {
+            totalScore += direction * queen;
+        }
+        if (pieceType === 'r') {
+            totalScore += direction * rook;
+        }
+        if (pieceType === 'b') {
+            totalScore += direction * bishop;
+        }
+        if (pieceType === 'n') {
+            totalScore += direction * knight;
+        }
+        
+    }
+}
+}
+
+     scoreText.innerText = totalScore;
+     if (scoreText.innerText < 0) {
+        scoreText.style.color = 'red';
+     } else if (scoreText.innerText > 0) {
+        scoreText.style.color = 'green';
+     } else {
+        scoreText.style.color = 'white'
+     }
+
+}
+
+function computer(currentTurn) {
+    let highest = 0;
+    let value = 0;
+    const allActions = [];
+   if (currentTurn === computerColor) {
+     for(let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            const piece = initialPiece[row][col];
+            if (piece && piece.slice(0, 1) === computerColor) {
+            for (let toRow = 0; toRow < 8; toRow++) {
+                for (let toCol = 0; toCol < 8; toCol++) {
+                    const targetPiece = initialPiece[toRow][toCol];
+                    let targetType;
+                    if (targetPiece) targetType = targetPiece.slice(1);
+                    if (targetType === 'p') {
+                      value = pawn;
+                    }
+                    if (targetType === 'n' || targetType === 'b') {
+                        value = knight;
+                    }
+                    if (targetType === 'q') {
+                        value = queen;
+                    }
+                    if (targetType === 'r') {
+                        value = rook;
+                    }
+                    const hasLegal = hasLegalMove(computerColor);
+                    const safe = noExposure(piece, row, col, toRow, toCol, targetPiece)
+                    if (safe && hasLegal) {
+                     if (value >= highest) {
+                        highest = value;
+                        const action = {
+                        value: value,
+                        move: () => {
+                        const oldSquare = document.querySelector(`[data-row='${row}'][data-col='${col}']`);
+                        const newSquare = document.querySelector(`[data-row='${toRow}'][data-col='${toCol}']`);
+                        const pieceImg = oldSquare.querySelector('img');
+                        const captureImg = newSquare.querySelector('img');
+
+                        if (captureImg) {
+                        captureImg.remove();
+                    }
+                    newSquare.appendChild(pieceImg);
+
+                        initialPiece[toRow][toCol] = piece;
+                        initialPiece[row][col] = null;
+                        }
+                        }
+                    allActions.push(action);
+                        }
+
+                     }
+                    value = 0; 
+                    } 
+
+                }
+            } //inner loop//
+        
+    
+     }
+   }
+}
+  console.log(allActions);
+  const max = Math.max(...allActions.map(item => item.value));
+  const maxIndex = allActions.findIndex(item => item.value === max);
+  if (allActions[maxIndex]) {
+  allActions[maxIndex].move();
+  }
 }
 
