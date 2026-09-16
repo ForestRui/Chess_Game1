@@ -56,6 +56,7 @@ let bishop = 3;
 let playerColor = 'w';
 let computerColor = 'b';
 let isComputer = false;
+let promotionPause = false;
 
 const trialBtn = document.querySelector('#trial-button');
 const pvcBtn = document.getElementById('pvc-button');
@@ -121,7 +122,7 @@ for (let row = 0; row < 8; row++) {
 
 
         square.addEventListener("click", () => {
-            if (gameOver) {
+            if (gameOver || promotionPause) {
                 return
             }
             if (initialPiece[row][col] && !selected) {
@@ -164,7 +165,7 @@ for (let row = 0; row < 8; row++) {
                 }
                 return
             } 
-            else if (selectedRow === row && selectedCol === col && selected && !gameOver) { //Cancel//
+            else if (selectedRow === row && selectedCol === col && selected) { //Cancel//
                 selected = false;
                 
                 const allSquare = document.querySelectorAll('.square');
@@ -185,20 +186,24 @@ for (let row = 0; row < 8; row++) {
                  let direction = selectedCol > col ? 1 : -1; //direc of rook//
                 let rookCol = selectedCol > col ? 0 : 7;
                 let kingRow = selectTurn === 'w' ? 7 : 0;
-                    initialPiece[row][col + direction] = initialPiece[kingRow][rookCol];
-                    initialPiece[row][col] = initialPiece[selectedRow][selectedCol];
+                    initialPiece[row][col + direction] = initialPiece[kingRow][rookCol]; //define newRook//
+                    initialPiece[row][col] = initialPiece[selectedRow][selectedCol]; // define newKing//
+                    initialPiece[kingRow][rookCol] = null;
+                    initialPiece[selectedRow][selectedCol] = null;
+
                     const oldRookSquare = document.querySelector(`[data-row="${kingRow}"][data-col="${rookCol}"]`);
                     const rookPiece = oldRookSquare.querySelector('img');
-                    const newRookSquare = document.querySelector(`[data-row="${row}"][data-col="${col + direction}"]`)
-                    newRookSquare.appendChild(rookPiece);
-                    initialPiece[kingRow][rookCol] = null;
+                    const newRookSquare = document.querySelector(`[data-row="${row}"][data-col="${col + direction}"]`);
+                    const rookDestination = newRookSquare.querySelector('img');
+                    animatePieceMove(oldRookSquare, newRookSquare, rookPiece, rookDestination)
                     console.log("castling executed");
                     selected = false;
-
+             
+                   const targetPiece = square.querySelector('img');
                    const oldSquare = document.querySelector(`[data-row="${selectedRow}"][data-col="${selectedCol}"]`);
              const movePiece = oldSquare.querySelector('img');
              movePiece.classList.toggle('selected');
-             square.appendChild(movePiece);
+             animatePieceMove(oldSquare, square, movePiece, targetPiece);
              console.log('piece:', selectedPiece);
             console.log('safe:', safe);
              if (currentTurn === "w") {
@@ -248,20 +253,8 @@ for (let row = 0; row < 8; row++) {
                 allSquare.forEach(square => {
                     square.classList.remove('selected-square', 'valid-move', 'invalid-move');
                 });
-                if (isKingInChecked(computerColor)) {
-                    const king = enemyColor + 'k';
-                    const kingRow = initialPiece.findIndex(row => row.includes(king));
-                    const kingCol = initialPiece[kingRow].indexOf(king);
-                    const kingSquare = document.querySelector(`[data-row='${kingRow}'][data-col='${kingCol}']`);
-                    kingSquare.classList.add('check-square');
-                }
-                if (isKingInChecked(playerColor)) {
-                    const king = playerColor + 'k';
-                    const kingRow = initialPiece.findIndex(row => row.includes(king));
-                    const kingCol = initialPiece[kingRow].indexOf(king);
-                    const kingSquare = document.querySelector(`[data-row='${kingRow}'][data-col='${kingCol}']`);
-                    kingSquare.classList.add('check-square');
-                }
+                checkCSS(computerColor);
+                checkCSS(playerColor);
 
 
             return 
@@ -278,10 +271,10 @@ for (let row = 0; row < 8; row++) {
              movePiece.classList.toggle('selected');
              oldSquare.classList.remove('selected-square');
              const capturePiece = square.querySelector('img');
-             if (capturePiece) {
-                capturePiece.remove(); //man!//
-             }
-            square.appendChild(movePiece);
+             animatePieceMove(oldSquare, square, movePiece, capturePiece);
+
+
+
             console.log('piece:', selectedPiece);
             console.log('valid:', valid);
             console.log('safe:', safe);
@@ -292,20 +285,6 @@ for (let row = 0; row < 8; row++) {
             }
 
             
-
-             if (initialPiece[row][col] === "wp" && row === 0) {
-                initialPiece[row][col] = 'wq';
-                const img = square.querySelector('img');
-                img.src = `src/pieces/${pieceMap.wq}`;
-                img.alt = 'wq';
-                console.log("Promotion executed");
-            }if (initialPiece[row][col] === "bp" && row === 7) {
-                initialPiece[row][col] = 'bq';
-                const img = square.querySelector('img');
-                img.src = `src/pieces/${pieceMap.bq}`;
-                img.alt = 'bq';
-                console.log("Promotion executed");
-            }
 
             if (selectedPiece === 'br' && selectedRow === 0) {
                 if (selectedCol === 0) leftBlackRookMoved = true;  
@@ -334,35 +313,32 @@ for (let row = 0; row < 8; row++) {
                  alert ('Stalemate!')
                 }
             }
-              }, 100 );
-              
-               if (isComputer && currentTurn === computerColor) {
+
+            if (isComputer && currentTurn === computerColor) {
                 computer((computerColor));
-                showScore(playerColor);
                 currentTurn = 'w';
+                showScore(playerColor);
+                checkCSS(playerColor);
             }
 
-            showScore(playerColor);
+             if (initialPiece[row][col] === "wp" && row === 0) {
+                promotion(row, col, square, 'w');
+                promotionPause = true;
+                showScore(playerColor);
+            }if (initialPiece[row][col] === "bp" && row === 7) {
+                promotion(row, col, square, 'b');
+                promotionPause = true;
+            }
 
+              }, 350 );
 
               const allSquare = document.querySelectorAll('.square'); //CSS//
-                allSquare.forEach(square => {
-                    square.classList.remove('selected-square', 'valid-move', 'invalid-move', 'check-square');
+              allSquare.forEach(square => {
+                square.classList.remove('selected-square', 'valid-move', 'invalid-move', 'check-square');
                 });
-                if (isKingInChecked(computerColor)) {
-                    const king = enemyColor + 'k';
-                    const kingRow = initialPiece.findIndex(row => row.includes(king));
-                    const kingCol = initialPiece[kingRow].indexOf(king);
-                    const kingSquare = document.querySelector(`[data-row='${kingRow}'][data-col='${kingCol}']`);
-                    kingSquare.classList.add('check-square');
-                }
-                if (isKingInChecked(playerColor)) {
-                    const king = playerColor + 'k';
-                    const kingRow = initialPiece.findIndex(row => row.includes(king));
-                    const kingCol = initialPiece[kingRow].indexOf(king);
-                    const kingSquare = document.querySelector(`[data-row='${kingRow}'][data-col='${kingCol}']`);
-                    kingSquare.classList.add('check-square');
-                }
+                showScore(playerColor);
+                checkCSS(computerColor);
+                checkCSS(playerColor);
             return
             } else if (selected) {
              selected = false;
@@ -766,6 +742,7 @@ for (let row = 0; row < 8; row++) {
      if (scoreText.innerText < 0) {
         scoreText.style.color = 'red';
      } else if (scoreText.innerText > 0) {
+        scoreText.innerText = "+" + totalScore;
         scoreText.style.color = 'green';
      } else {
         scoreText.style.color = 'white'
@@ -799,26 +776,21 @@ function computer(currentTurn) {
                     if (targetType === 'r') {
                         value = rook;
                     }
-                    const hasLegal = hasLegalMove(computerColor);
                     const safe = noExposure(piece, row, col, toRow, toCol, targetPiece)
-                    if (safe && hasLegal) {
+                    if (safe) {
                      if (value >= highest) {
                         highest = value;
                         const action = {
                         value: value,
                         move: () => {
+                            initialPiece[toRow][toCol] = piece;
+                        initialPiece[row][col] = null;
                         const oldSquare = document.querySelector(`[data-row='${row}'][data-col='${col}']`);
                         const newSquare = document.querySelector(`[data-row='${toRow}'][data-col='${toCol}']`);
                         const pieceImg = oldSquare.querySelector('img');
                         const captureImg = newSquare.querySelector('img');
 
-                        if (captureImg) {
-                        captureImg.remove();
-                    }
-                    newSquare.appendChild(pieceImg);
-
-                        initialPiece[toRow][toCol] = piece;
-                        initialPiece[row][col] = null;
+                    animatePieceMove(oldSquare, newSquare, pieceImg, captureImg);
                         }
                         }
                     allActions.push(action);
@@ -837,9 +809,71 @@ function computer(currentTurn) {
 }
   console.log(allActions);
   const max = Math.max(...allActions.map(item => item.value));
-  const maxIndex = allActions.findIndex(item => item.value === max);
-  if (allActions[maxIndex]) {
-  allActions[maxIndex].move();
+  const best = allActions.filter(item => item.value === max);
+  const pick = best[Math.floor(Math.random() * best.length)];
+  if (pick) {
+  pick.move();
   }
 }
 
+function animatePieceMove(oldSquare, newSquare, pieceImg, captureImg) {
+  const oldRect = oldSquare.getBoundingClientRect();
+  const newRect = newSquare.getBoundingClientRect();
+  
+  const xValue = newRect.left - oldRect.left;
+  const yValue = newRect.top - oldRect.top;
+
+  pieceImg.style.transition = 'transform 0.3s ease';
+  pieceImg.style.transform = `translate(${xValue}px, ${yValue}px) scale(1.1)`;
+  pieceImg.addEventListener('transitionend', () => {
+    if (captureImg) {
+        captureImg.remove();
+    }
+    newSquare.appendChild(pieceImg);
+    pieceImg.style.transition = 'transform 0.1s ease';
+    pieceImg.style.transform = '';
+    pieceImg.addEventListener('transitionend', () => {
+        pieceImg.style.transition = '';
+    }, {once: true})
+  }, {once: true})
+
+}
+
+function promotion(row, col, newSquare, color) { //set timeout prevent error, before KingCheck, before score, after move;//
+  const enemyColor = color === 'w' ? 'b' : 'w';
+  chessboard.insertAdjacentHTML('beforeend', `
+  <div id="promotion">
+  <button data-piece="q" class="promotion-btn"><span>queen<img src="src/pieces/${pieceMap[color + 'q']}"></span></button>
+  <button data-piece="n" class="promotion-btn"><span>knight<img src="src/pieces/${pieceMap[color + 'n']}"></span></button>
+  <button data-piece="b" class="promotion-btn"><span>bishop<img src="src/pieces/${pieceMap[color + 'b']}"></span></button>
+  <button data-piece="r" class="promotion-btn"><span>rook<img src="src/pieces/${pieceMap[color + 'r']}"></span></button>
+  </div>
+  `);
+  const promotionOptions = document.querySelector('#promotion');
+  const promotionBtns = document.querySelectorAll('.promotion-btn');
+
+  promotionBtns.forEach(btn => btn.addEventListener('click', () => {
+    const newPiece = color + btn.dataset.piece;
+    initialPiece[row][col] = newPiece;
+    const img = newSquare.querySelector('img');
+          img.src = `src/pieces/${pieceMap[newPiece]}`;
+          img.alt = `${newPiece}`;
+          img.classList.add('piece');  
+
+    promotionOptions.remove();
+    promotionPause = false;
+    checkCSS(enemyColor);
+    showScore(playerColor);
+  }))
+
+}
+
+function checkCSS(color) {
+     if (isKingInChecked(color)) {
+                    const king = color + 'k';
+                    const kingRow = initialPiece.findIndex(row => row.includes(king));
+                    const kingCol = initialPiece[kingRow].indexOf(king);
+                    const kingSquare = document.querySelector(`[data-row='${kingRow}'][data-col='${kingCol}']`);
+                    kingSquare.classList.add('check-square');
+                }
+}
