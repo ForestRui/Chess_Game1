@@ -118,7 +118,7 @@ for (let row = 0; row < 8; row++) {
         const piece = initialPiece[row][col];
         if (piece) {
             const img = document.createElement('img');
-            img.src = `src/pieces/${pieceMap[piece]}`;
+            img.src = `src/pieces/${pieceMap[piece]}?v=2`;
             img.alt = piece;
             img.classList.add('piece');
             square.appendChild(img);
