@@ -68,6 +68,13 @@ const gameBtns = document.querySelector('.ingame-buttons');
 const resetBtn = document.querySelector('#reset');
 const pieceValue = document.querySelector('#piece-value');
 
+const selectSound = new Audio('src/sound/chess-select.mp3');
+const cancelSound = new Audio('src/sound/chess-cancel.mp3');
+const moveSound = new Audio('src/sound/chess-move.mp3');
+const checkSound = new Audio('src/sound/chess-check.mp3');
+const promotionSound = new Audio('src/sound/chess-promotion.mp3');
+
+
 trialBtn.addEventListener('click', () => {
   main.classList.toggle('hidden');
   menu.classList.toggle('hidden');
@@ -148,6 +155,7 @@ for (let row = 0; row < 8; row++) {
                 const pieceImage = square.querySelector('img');
 
                 pieceImage.classList.toggle("selected");  //CSS//
+                selectSound.play();
                 square.classList.add('selected-square');
                 for (let checkRow = 0; checkRow < 8; checkRow++) { 
                     for (let checkCol = 0; checkCol < 8; checkCol++) {
@@ -167,6 +175,7 @@ for (let row = 0; row < 8; row++) {
             } 
             else if (selectedRow === row && selectedCol === col && selected) { //Cancel//
                 selected = false;
+                cancelSound.play();
                 
                 const allSquare = document.querySelectorAll('.square');
                 allSquare.forEach(square => {
@@ -250,6 +259,7 @@ for (let row = 0; row < 8; row++) {
               showScore(playerColor);
 
               const allSquare = document.querySelectorAll('.square'); //CSS//
+              moveSound.play();
                 allSquare.forEach(square => {
                     square.classList.remove('selected-square', 'valid-move', 'invalid-move');
                 });
@@ -302,6 +312,22 @@ for (let row = 0; row < 8; row++) {
                 whiteKingMoved = true;
             }
             setTimeout(() => {
+                if (initialPiece[row][col] === "wp" && row === 0) {
+                promotionPause = true;
+                promotion(row, col, square, 'w');
+                showScore(playerColor);
+            }if (initialPiece[row][col] === "bp" && row === 7) {
+                promotionPause = true;
+                promotion(row, col, square, 'b');
+                showScore(playerColor);
+            }
+
+            if (isComputer && currentTurn === computerColor && promotionPause === false) {
+                computer((computerColor));
+                currentTurn = 'w';
+                showScore(playerColor);
+                checkCSS(playerColor);
+            }
                 
                 if (!hasLegalMove(enemyColor)) {
                 const fullSpell = selectedColor === 'w' ? 'White' : 'Black';
@@ -314,25 +340,10 @@ for (let row = 0; row < 8; row++) {
                 }
             }
 
-            if (isComputer && currentTurn === computerColor) {
-                computer((computerColor));
-                currentTurn = 'w';
-                showScore(playerColor);
-                checkCSS(playerColor);
-            }
-
-             if (initialPiece[row][col] === "wp" && row === 0) {
-                promotion(row, col, square, 'w');
-                promotionPause = true;
-                showScore(playerColor);
-            }if (initialPiece[row][col] === "bp" && row === 7) {
-                promotion(row, col, square, 'b');
-                promotionPause = true;
-            }
-
               }, 350 );
 
               const allSquare = document.querySelectorAll('.square'); //CSS//
+              moveSound.play();
               allSquare.forEach(square => {
                 square.classList.remove('selected-square', 'valid-move', 'invalid-move', 'check-square');
                 });
@@ -342,6 +353,7 @@ for (let row = 0; row < 8; row++) {
             return
             } else if (selected) {
              selected = false;
+             cancelSound.play()
              const oldSquare = document.querySelector(`[data-row="${selectedRow}"][data-col="${selectedCol}"]`)
              const movePiece = oldSquare.querySelector('img');
              movePiece.classList.toggle('selected');
@@ -811,9 +823,13 @@ function computer(currentTurn) {
   const max = Math.max(...allActions.map(item => item.value));
   const best = allActions.filter(item => item.value === max);
   const pick = best[Math.floor(Math.random() * best.length)];
-  if (pick) {
+  setTimeout(() => {
+    if (pick) {
   pick.move();
+  moveSound.play();
+  showScore(playerColor);
   }
+  }, 2000);
 }
 
 function animatePieceMove(oldSquare, newSquare, pieceImg, captureImg) {
@@ -841,12 +857,12 @@ function animatePieceMove(oldSquare, newSquare, pieceImg, captureImg) {
 
 function promotion(row, col, newSquare, color) { //set timeout prevent error, before KingCheck, before score, after move;//
   const enemyColor = color === 'w' ? 'b' : 'w';
-  chessboard.insertAdjacentHTML('beforeend', `
+  newSquare.insertAdjacentHTML('beforeend', `
   <div id="promotion">
-  <button data-piece="q" class="promotion-btn"><span>queen<img src="src/pieces/${pieceMap[color + 'q']}"></span></button>
-  <button data-piece="n" class="promotion-btn"><span>knight<img src="src/pieces/${pieceMap[color + 'n']}"></span></button>
-  <button data-piece="b" class="promotion-btn"><span>bishop<img src="src/pieces/${pieceMap[color + 'b']}"></span></button>
-  <button data-piece="r" class="promotion-btn"><span>rook<img src="src/pieces/${pieceMap[color + 'r']}"></span></button>
+  <button data-piece="q" class="promotion-btn"><img class="promotion-img" src="src/pieces/${pieceMap[color + 'q']}"></button>
+  <button data-piece="n" class="promotion-btn"><img class="promotion-img" src="src/pieces/${pieceMap[color + 'n']}"></button>
+  <button data-piece="b" class="promotion-btn"><img class="promotion-img" src="src/pieces/${pieceMap[color + 'b']}"></button>
+  <button data-piece="r" class="promotion-btn"><img class="promotion-img" src="src/pieces/${pieceMap[color + 'r']}"></button>
   </div>
   `);
   const promotionOptions = document.querySelector('#promotion');
@@ -864,6 +880,7 @@ function promotion(row, col, newSquare, color) { //set timeout prevent error, be
     promotionPause = false;
     checkCSS(enemyColor);
     showScore(playerColor);
+    promotionSound.play();
   }))
 
 }
@@ -875,5 +892,7 @@ function checkCSS(color) {
                     const kingCol = initialPiece[kingRow].indexOf(king);
                     const kingSquare = document.querySelector(`[data-row='${kingRow}'][data-col='${kingCol}']`);
                     kingSquare.classList.add('check-square');
+                    checkSound.play();
                 }
 }
+
