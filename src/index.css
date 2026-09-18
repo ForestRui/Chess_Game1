@@ -103,9 +103,10 @@ main {
 }
 
 .ingame-buttons {
+    height: 10vh;
     display: flex;
     flex-direction: column;
-    gap: 2rem;
+    gap: 5%;
     margin: auto;
 
     position: absolute;
