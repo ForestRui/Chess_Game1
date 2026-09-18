@@ -828,6 +828,7 @@ function computer(currentTurn) {
   pick.move();
   moveSound.play();
   showScore(playerColor);
+  checkCSS(playerColor);
   }
   }, 2000);
 }
@@ -895,4 +896,5 @@ function checkCSS(color) {
                     checkSound.play();
                 }
 }
+
 
