@@ -55,6 +55,12 @@ I built this project to practise JavaScript concepts including:
 - Add difficulty levels
 - Improve mobile UI
 
+## Bugs
+- //king might be captured//
+//multiple steps at one turn when counter computer//
+//image size//
+
+
 ## Author
 
 Forest Rui
