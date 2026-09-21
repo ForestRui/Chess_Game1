@@ -836,7 +836,7 @@ function computer(current) {
   const pick = best[Math.floor(Math.random() * best.length)];
   setTimeout(() => {
     if (pick) {
-  allActions[0].move();
+  pick.move();
   moveSound.play();
   currentTurn = 'w';
   console.log("currentTurn :" + currentTurn);
