@@ -14,18 +14,18 @@ let initialPiece = [
 const startPiece = initialPiece.map(row => [...row]);
 
 const pieceMap = {
-    br: 'black-rook.png',
-    bn: 'black-knight.png',
-    bb: 'black-bishop.png',
-    bq: 'black-queen.png',
-    bk: 'black-king.png',
-    bp: 'black-pawn.png',
-    wr: 'white-rook.png',
-    wn: 'white-knight.png',
-    wb: 'white-bishop.png',
-    wk: 'white-king.png',
-    wq: 'white-queen.png',
-    wp: 'white-pawn.png',
+    br: 'black-rook.webp',
+    bn: 'black-knight.webp',
+    bb: 'black-bishop.webp',
+    bq: 'black-queen.webp',
+    bk: 'black-king.webp',
+    bp: 'black-pawn.webp',
+    wr: 'white-rook.webp',
+    wn: 'white-knight.webp',
+    wb: 'white-bishop.webp',
+    wk: 'white-king.webp',
+    wq: 'white-queen.webp',
+    wp: 'white-pawn.webp',
 }
 
 let from;
@@ -118,7 +118,7 @@ for (let row = 0; row < 8; row++) {
         const piece = initialPiece[row][col];
         if (piece) {
             const img = document.createElement('img');
-            img.src = `src/pieces/${pieceMap[piece]}`;
+            img.src = `src/pieces/${pieceMap[piece]}?v=2`;
             img.alt = piece;
             img.classList.add('piece');
             square.appendChild(img);
@@ -129,11 +129,13 @@ for (let row = 0; row < 8; row++) {
 
 
         square.addEventListener("click", () => {
-            if (gameOver || promotionPause) {
+            if (gameOver) {
                 return
             }
             if (initialPiece[row][col] && !selected) {
                 selectTurn = initialPiece[row][col].slice(0, 1);
+                console.log("selecteTurn is: " + selectTurn);
+                console.log("currentTurn is: " + currentTurn);
             }
             console.log(square.dataset);
             console.log(initialPiece[row][col])
@@ -141,6 +143,10 @@ for (let row = 0; row < 8; row++) {
             if (selectTurn !== currentTurn) {
                 console.log("Not your turn");
                 return
+            }
+            if (currentTurn === computerColor && isComputer) {
+                console.log("cant selecte computer");
+                return;
             }
 
             if (selectTurn === currentTurn && !selected) { //Select//
@@ -150,7 +156,7 @@ for (let row = 0; row < 8; row++) {
                 selected = true;
                 if(initialPiece[row][col]) selectedColor = initialPiece[row][col].slice(0, 1);
                 enemyColor = selectedColor === 'w' ? 'b' : 'w';
-                console.log("selected")
+                console.log(currentTurn + " selected");
                 selectedPiece = initialPiece[row][col];
                 const pieceImage = square.querySelector('img');
 
@@ -311,25 +317,29 @@ for (let row = 0; row < 8; row++) {
             if (selectedPiece === 'wk') {
                 whiteKingMoved = true;
             }
+            
+            if (initialPiece[row][col] === "wp" && row === 0) {
+                promotionPause = true;
+            } else if (initialPiece[row][col] === "bp" && row === 7) {
+                promotionPause = true;
+            }
             setTimeout(() => {
                 if (initialPiece[row][col] === "wp" && row === 0) {
-                promotionPause = true;
                 promotion(row, col, square, 'w');
                 showScore(playerColor);
-            }if (initialPiece[row][col] === "bp" && row === 7) {
-                promotionPause = true;
+            }   if (initialPiece[row][col] === "bp" && row === 7) {
                 promotion(row, col, square, 'b');
                 showScore(playerColor);
             }
+              }, 350 ); // I might want to make promotionPause = true before the check//
 
-            if (isComputer && currentTurn === computerColor && promotionPause === false) {
+              if (isComputer && currentTurn === computerColor && promotionPause === false) {
                 computer((computerColor));
-                currentTurn = 'w';
                 showScore(playerColor);
                 checkCSS(playerColor);
             }
-                
-                if (!hasLegalMove(enemyColor)) {
+
+             if (!hasLegalMove(enemyColor)) {
                 const fullSpell = selectedColor === 'w' ? 'White' : 'Black';
                 if (isKingInChecked(enemyColor)) {
                     gameOver = true;
@@ -339,8 +349,6 @@ for (let row = 0; row < 8; row++) {
                  alert ('Stalemate!')
                 }
             }
-
-              }, 350 );
 
               const allSquare = document.querySelectorAll('.square'); //CSS//
               moveSound.play();
@@ -745,6 +753,9 @@ for (let row = 0; row < 8; row++) {
         if (pieceType === 'n') {
             totalScore += direction * knight;
         }
+        if (pieceType === 'k') {
+            totalScore += direction * 100;
+        }
         
     }
 }
@@ -762,11 +773,11 @@ for (let row = 0; row < 8; row++) {
 
 }
 
-function computer(currentTurn) {
+function computer(current) {
     let highest = 0;
     let value = 0;
     const allActions = [];
-   if (currentTurn === computerColor) {
+   if (current === computerColor) {
      for(let row = 0; row < 8; row++) {
         for (let col = 0; col < 8; col++) {
             const piece = initialPiece[row][col];
@@ -825,9 +836,12 @@ function computer(currentTurn) {
   const pick = best[Math.floor(Math.random() * best.length)];
   setTimeout(() => {
     if (pick) {
-  pick.move();
+  allActions[0].move();
   moveSound.play();
+  currentTurn = 'w';
+  console.log("currentTurn :" + currentTurn);
   showScore(playerColor);
+  checkCSS(playerColor);  // allActions[0] replace pick//
   }
   }, 2000);
 }
@@ -868,7 +882,8 @@ function promotion(row, col, newSquare, color) { //set timeout prevent error, be
   const promotionOptions = document.querySelector('#promotion');
   const promotionBtns = document.querySelectorAll('.promotion-btn');
 
-  promotionBtns.forEach(btn => btn.addEventListener('click', () => {
+  promotionBtns.forEach(btn => btn.addEventListener('click', (event) => {
+    event.stopPropagation();
     const newPiece = color + btn.dataset.piece;
     initialPiece[row][col] = newPiece;
     const img = newSquare.querySelector('img');
@@ -881,6 +896,11 @@ function promotion(row, col, newSquare, color) { //set timeout prevent error, be
     checkCSS(enemyColor);
     showScore(playerColor);
     promotionSound.play();
+     if (isComputer && currentTurn === computerColor && promotionPause === false) {
+                computer((computerColor));
+                showScore(playerColor);
+                checkCSS(playerColor);
+            }
   }))
 
 }
@@ -896,3 +916,5 @@ function checkCSS(color) {
                 }
 }
 
+//king might be captured？//
+//castile logic//
