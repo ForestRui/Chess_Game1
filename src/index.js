@@ -28,6 +28,11 @@ const pieceMap = {
     wp: 'white-pawn.webp',
 }
 
+let socket = null;
+let isPvp = false;
+let myColor = 'w'; 
+let roomId = '';
+
 let from;
 let to;
 let selectedRow;
@@ -76,9 +81,11 @@ const promotionSound = new Audio('src/sound/chess-promotion.mp3');
 
 
 trialBtn.addEventListener('click', () => {
-  main.classList.toggle('hidden');
-  menu.classList.toggle('hidden');
-  title.classList.toggle('hidden');
+  if (socket) socket.close();
+  isPvp = false;
+  main.classList.remove('hidden');
+  menu.classList.add('hidden');
+  title.classList.add('hidden');
   reset();
   isComputer = false;
 })
@@ -92,13 +99,39 @@ pvcBtn.addEventListener('click', () => {
 })
 
 menuBtn.addEventListener('click', () => {
-  main.classList.toggle('hidden');
-  menu.classList.toggle('hidden');
-  title.classList.toggle('hidden');
+  if (socket) socket.close();
+  isPvp = false;
+  main.classList.add('hidden');
+  menu.classList.remove('hidden');
+  title.classList.remove('hidden');
   reset();
-})
+});
 
-resetBtn.addEventListener('click', reset);
+const pvpBtn = document.getElementById('pvp-button');
+const roomInput = document.getElementById('room-input');
+const statusText = document.getElementById('connection-status');
+
+pvpBtn.addEventListener('click', () => {
+  const room = roomInput.value.trim() || Math.random().toString(36).substring(2, 7);
+  roomId = room;
+  
+  main.classList.remove('hidden');
+  menu.classList.add('hidden');
+  title.classList.add('hidden');
+  
+  isComputer = false;
+  isPvp = true;
+  
+  connectToServer(room);
+  reset();
+});
+
+resetBtn.addEventListener('click', () => {
+  reset();
+  if (isPvp && socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({ type: 'reset' }));
+  }
+});
 
 showScore(playerColor);
 
@@ -144,8 +177,8 @@ for (let row = 0; row < 8; row++) {
                 console.log("Not your turn");
                 return
             }
-            if (currentTurn === computerColor && isComputer) {
-                console.log("cant selecte computer");
+            if (currentTurn === computerColor && isComputer) { //for bug check purpose only//
+                console.log("cant select computer");
                 return;
             }
 
@@ -219,6 +252,15 @@ for (let row = 0; row < 8; row++) {
              const movePiece = oldSquare.querySelector('img');
              movePiece.classList.toggle('selected');
              animatePieceMove(oldSquare, square, movePiece, targetPiece);
+
+              if (isPvp && socket && socket.readyState === WebSocket.OPEN) {
+                 socket.send(JSON.stringify({
+                     type: 'move',
+                     boardState: initialPiece,
+                     currentTurn: currentTurn === "w" ? "b" : "w" // Send next turn
+                 }));
+             }
+
              console.log('piece:', selectedPiece);
             console.log('safe:', safe);
              if (currentTurn === "w") {
@@ -289,6 +331,15 @@ for (let row = 0; row < 8; row++) {
              const capturePiece = square.querySelector('img');
              animatePieceMove(oldSquare, square, movePiece, capturePiece);
 
+              // --- ADD THIS PVP SYNC BLOCK ---
+             if (isPvp && socket && socket.readyState === WebSocket.OPEN) {
+                 socket.send(JSON.stringify({
+                     type: 'move',
+                     boardState: initialPiece,
+                     currentTurn: currentTurn === "w" ? "b" : "w" // Send next turn
+                 }));
+             }
+             // -------------------------------
 
 
             console.log('piece:', selectedPiece);
@@ -831,6 +882,13 @@ function computer(current) {
    }
 }
   console.log(allActions);
+  if (allActions.length === 0 && isKingInChecked(computerColor)) {
+    alert('checkmate');
+    console.log('message from computer function')
+  } else if (allActions.length === 0 && !isKingInChecked(computerColor)){
+   alert("stalemate!");
+   console.log('message from computer function')
+  }
   const max = Math.max(...allActions.map(item => item.value));
   const best = allActions.filter(item => item.value === max);
   const pick = best[Math.floor(Math.random() * best.length)];
@@ -893,6 +951,15 @@ function promotion(row, col, newSquare, color) { //set timeout prevent error, be
 
     promotionOptions.remove();
     promotionPause = false;
+
+     if (isPvp && socket && socket.readyState === WebSocket.OPEN) {
+                 socket.send(JSON.stringify({
+                     type: 'move',
+                     boardState: initialPiece,
+                     currentTurn: currentTurn === "w" ? "b" : "w" // Send next turn
+                 }));
+             }
+
     checkCSS(enemyColor);
     showScore(playerColor);
     promotionSound.play();
@@ -916,5 +983,87 @@ function checkCSS(color) {
                 }
 }
 
-//king might be captured？//
-//castile logic//
+function connectToServer(room) {
+  socket = new WebSocket('ws://localhost:8080'); // Change this to your deployed server URL later
+
+  socket.onopen = () => {
+    statusText.innerText = `Connected. Waiting for opponent...`;
+    socket.send(JSON.stringify({ type: 'join', roomId: room, currentBoard: initialPiece }));
+  };
+
+  socket.onmessage = (event) => {
+    const msg = JSON.parse(event.data);
+
+    if (msg.type === 'joined') {
+      myColor = msg.color;
+      playerColor = myColor;
+      // Flip board view for black player (Optional but recommended)
+      if (myColor === 'b') {
+        chessboard.style.transform = 'translate(-50%, -50%) rotate(180deg)';
+        document.querySelectorAll('.square').forEach(sq => {
+            sq.style.transform = 'rotate(180deg)';
+            // Rotate pieces back so they aren't upside down
+            const img = sq.querySelector('img');
+            if(img) img.style.transform = 'rotate(180deg)';
+        });
+      }
+    }
+
+    if (msg.type === 'opponent_joined') {
+      statusText.innerText = `Opponent connected! You are White.`;
+    }
+
+    if (msg.type === 'opponent_move') {
+      // Update our local board with the opponent's move
+      initialPiece = msg.boardState;
+      currentTurn = msg.currentTurn;
+      
+      // Re-render the board visually
+      updateBoardVisuals();
+      moveSound.play();
+      showScore(playerColor);
+      checkCSS(playerColor);
+    }
+
+    if (msg.type === 'reset') {
+      reset();
+    }
+
+    if (msg.type === 'opponent_disconnected') {
+      alert("Opponent disconnected.");
+      statusText.innerText = `Opponent left.`;
+    }
+    
+    if (msg.type === 'error') {
+      alert(msg.message);
+    }
+  };
+
+  socket.onclose = () => {
+    statusText.innerText = `Disconnected.`;
+  };
+}
+
+function updateBoardVisuals() {
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      const square = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+      const piece = initialPiece[row][col];
+      
+      // Remove existing piece images
+      const existingImg = square.querySelector('img');
+      if (existingImg) existingImg.remove();
+
+      // Add new piece if exists
+      if (piece) {
+        const img = document.createElement('img');
+        img.src = `src/pieces/${pieceMap[piece]}?v=2`;
+        img.alt = piece;
+        img.classList.add('piece');
+        // Keep rotation for black players
+        if (myColor === 'b') img.style.transform = 'rotate(180deg)';
+        square.appendChild(img);
+      }
+    }
+  }
+}

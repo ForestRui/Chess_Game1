@@ -1,0 +1,24 @@
+{
+  "name": "chess-website",
+  "version": "1.0.0",
+  "description": "A browser-based chess game built with vanilla JavaScript, HTML, and CSS.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ForestRui/Chess_Game1.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ForestRui/Chess_Game1/issues"
+  },
+  "homepage": "https://github.com/ForestRui/Chess_Game1#readme",
+  "dependencies": {
+    "ws": "^8.22.2"
+  }
+}
